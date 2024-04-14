@@ -182,7 +182,7 @@ class R503:
         Status register and other basic configuration parameters
         returns: (list) status_reg, sys_id_code, finger_lib_size, security_lvl, device_addr, data_packet_size, baud_rate
         """
-        read_pkg = self.ser_send(pkg_len=0x03, instr_code=0x0F)
+        read_pkg = self.ser_send(pkg_len=0x03, instr_code=0x0F, rx_bytes_expected=28)
         return 99 if read_pkg[4] == 99 else unpack('>HHHHIHH', read_pkg[5])
 
     def read_sys_para_decode(self):
@@ -260,6 +260,8 @@ class R503:
 
     def load_char(self, page_id, buffer_id=1):
         """
+        ** Not tested with MicroPython **
+
         Load template ath the specified location of flash library to template buffer
         parameters: page_id => (int) page number
                     buffer id => (int) character buffer id
@@ -270,6 +272,8 @@ class R503:
 
     def up_image(self, timeout=5, raw=False):
         """
+        ** Not tested with MicroPython **
+
         Upload the image in Img_Buffer to upper computer
         every image contains the data around 20kilo bytes
         parameter: (int) timeout: timeout could vary if you change the baud rate, for 57600baud 5seconds is sufficient
@@ -293,6 +297,8 @@ class R503:
 
     def down_image(self, img_data):
         """
+        ** Not tested with MicroPython **
+
         Download image from the upper computer to the image buffer
         parameters: img_data (list of lists) image data as a list of lists
         returns: confirmation code
@@ -306,6 +312,8 @@ class R503:
 
     def down_packet(self, img_pkt, end=False):
         """
+        ** Not tested with MicroPython **
+
         Send a downlink data packet to the sensor module.
 
         Parameters:
@@ -324,6 +332,8 @@ class R503:
 
     def up_char(self, timeout=5, raw=False):
         """
+        ** Not tested with MicroPython **
+
         Upload the data in template buffer to the upper computer
         parameter: (int) timeout: timeout could vary if you change the baud rate, for 57600baud 5seconds is sufficient
         If you use a lower baud rate timeout may have to be increased.
@@ -346,6 +356,8 @@ class R503:
 
     def down_char(self, img_data, buffer_id=1):
         """
+        ** Not tested with MicroPython **
+
         Download a fingerprint template to the sensor module buffer.
 
         Parameters:
@@ -435,6 +447,31 @@ class R503:
         return read_conf_code[4]
 
     def manual_enroll(self, location, buffer_id=1, num_of_fps=4, wake_up_pin=7):
+        """
+        Manually enroll a fingerprint to the fingerprint sensor.
+
+        This method guides the user through the process of enrolling a new fingerprint
+        to the fingerprint sensor. It captures multiple images of the fingerprint,
+        generates a character file, registers the model, and stores the fingerprint
+        data in the specified location.
+
+        Args:
+            location (int): The page ID where the fingerprint data will be stored.
+            buffer_id (int, optional): The buffer ID to use for temporary storage. Defaults to 1.
+            num_of_fps (int, optional): The number of fingerprint images to capture. Defaults to 4.
+            wake_up_pin (int, optional): The GPIO pin number for the wake-up signal. Defaults to 7.
+
+        Returns:
+            None
+
+        Raises:
+            None
+
+        Note:
+            This method assumes that the fingerprint sensor is connected and properly
+            configured. It also requires a wake-up signal from the fingerprint sensor
+            to initiate the fingerprint capture process.
+        """
         finger_prints = 0
         char_buff_no = 1
         wu_pin = Pin(wake_up_pin, Pin.IN)
@@ -462,7 +499,7 @@ class R503:
                     if finger_prints >= num_of_fps:
                         print('Registering the fingerprint...')
                         if not self.reg_model():
-                            print('registering the model')
+                            print('Registering the model')
                             if not self.store(buffer_id=buffer_id, page_id=location):
                                 print('Fingerprint registered successfully')
                             else:
@@ -472,56 +509,6 @@ class R503:
                             print('Error registering the model')
                 else:
                     print('error reading...')
-
-    # def manual_enroll_old(self, location, buffer_id=1, timeout=10, num_of_fps=4, loop_delay=.3):
-    #     """
-    #     Manually enroll a new fingerprint.
-    #
-    #     Args:
-    #         location: The memory location to store the fingerprint.
-    #         buffer_id: The buffer id to store intermediate data. Default 1.
-    #         timeout: The timeout in seconds. Default 10.
-    #         num_of_fps: The number of fingerprints to capture. Default 4.
-    #         loop_delay: The delay between capture attempts in seconds. Default 0.3.
-    #
-    #     This function will:
-    #         - Prompt the user to place their finger on the sensor and capture fingerprints.
-    #         - Generate character files from the fingerprints.
-    #         - Register a fingerprint model once num_of_fps prints are captured.
-    #         - Store the fingerprint model in the specified memory location.
-    #         - Timeout after timeout seconds if fingerprints are not captured.
-    #     """
-    #     inc = 1
-    #     printed = False
-    #     t1 = time.time()
-    #     finger_prints = 0
-    #     while True:
-    #         if not printed:
-    #             print(f'Place your finger on the sensor: {inc}')
-    #             printed = True
-    #         if not self.get_image_ex():
-    #             print('Reading the finger print')
-    #             if not self.img2tz(buffer_id=inc):
-    #                 print('Character file generation successful.')
-    #                 finger_prints += 1
-    #             else:
-    #                 print('Character file generation failed !')
-    #                 inc -= 1
-    #             if finger_prints >= num_of_fps:
-    #                 print('registering the finger print')
-    #                 if not self.reg_model():
-    #                     if not self.store(buffer_id=buffer_id, page_id=location):
-    #                         print('finger print registered successfully.')
-    #                     else:
-    #                         print('finger print register failed !')
-    #                     break
-    #             inc += 1
-    #             t1 = time.time()
-    #             printed = False
-    #         time.sleep(loop_delay)
-    #         if time.time() - t1 > timeout:
-    #             print('Timeout')
-    #             break
 
     def delete_char(self, page_num, num_of_temps_to_del=1):
         """
@@ -548,7 +535,7 @@ class R503:
         Compare the recently extracted character with the templates in the ModelBuffer, providing matching result.
         returns: (tuple) status: [0: matching, 1: error, 8: not matching], match score
         """
-        rec_data = self.ser_send(pid=0x01, pkg_len=0x03, instr_code=0x03)
+        rec_data = self.ser_send(pid=0x01, pkg_len=0x03, instr_code=0x03, rx_bytes_expected=14)
         return rec_data[4], rec_data[5]
 
     def search(self, buff_num=1, start_id=0, para=200):
@@ -586,7 +573,7 @@ class R503:
         Returns:
             num_templates (int): Number of valid templates stored.
         """
-        read_pkg = self.ser_send(pkg_len=0x03, instr_code=0x1d)
+        read_pkg = self.ser_send(pkg_len=0x03, instr_code=0x1d, rx_bytes_expected=14)
         return unpack('>H', read_pkg[5])[0]
 
     def read_index_table(self, index_page=0):
@@ -596,7 +583,7 @@ class R503:
         returns: (list) index which fingerprints saved already
         """
         index_page = pack('>B', index_page)
-        temp = self.ser_send(pkg_len=0x04, instr_code=0x1f, pkg=index_page)
+        temp = self.ser_send(pkg_len=0x04, instr_code=0x1f, pkg=index_page, rx_bytes_expected=44)
         if temp[4] == 99:
             return 99
         temp0 = temp[5]
@@ -656,7 +643,7 @@ class R503:
         Returns:
             Tuple of 9 info strings if successful, else 99
         """
-        info = self.ser_send(pkg_len=0x03, instr_code=0x3c)
+        info = self.ser_send(pkg_len=0x03, instr_code=0x3c, rx_bytes_expected=58)
         if info[4] == 99:
             return 99
         inf = info[5]
@@ -715,7 +702,7 @@ class R503:
             The serial number is returned in recv_data[4].
             The firmware version is returned in recv_data[5].
         """
-        recv_data = self.ser_send(pid=0x01, pkg_len=3, instr_code=0x3A)
+        recv_data = self.ser_send(pid=0x01, pkg_len=3, instr_code=0x3A, rx_bytes_expected=44)
         return recv_data[4], recv_data[5]
 
     def get_alg_ver(self):
@@ -728,7 +715,7 @@ class R503:
             The confirmation code is returned as the first tuple value.
             The algorithm version is returned as the second tuple value.
         """
-        recv_data = self.ser_send(pid=0x01, pkg_len=3, instr_code=0x39)
+        recv_data = self.ser_send(pid=0x01, pkg_len=3, instr_code=0x39, rx_bytes_expected=44)
         return recv_data[4], recv_data[5]
 
     def soft_reset(self):
@@ -748,7 +735,7 @@ class R503:
         Returns:
             random_num (int): The 32-bit random integer value if success else 99
         """
-        read_pkg = self.ser_send(pkg_len=0x03, pid=0x01, instr_code=0x14)
+        read_pkg = self.ser_send(pkg_len=0x03, pid=0x01, instr_code=0x14, rx_bytes_expected=16)
         return 99 if read_pkg[4] == 99 else unpack('>I', read_pkg[5])[0]
 
     def get_available_location(self, index_page=0):
@@ -809,17 +796,14 @@ class R503:
             send_values += pkg
         check_sum = sum(send_values)
         if self.ser.any():
-            print('ser any = ', self.ser.any())
             self.ser.read()
         send_values = self.header + self.addr + send_values + pack('>H', check_sum)
         self.ser.write(send_values)
         t0 = time.ticks_ms()
         while True:
             if self.ser.any() >= rx_bytes_expected:
-                print('Serial available', self.ser.any())
                 break
             if time.ticks_diff(time.ticks_ms(), t0) > timeout:
-                print('Timeout')
                 break
         read_val = self.ser.read()
         return [0, 0, 0, 0, 99, None, 0] if read_val is None else self.read_msg(read_val)
