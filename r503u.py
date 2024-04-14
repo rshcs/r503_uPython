@@ -10,7 +10,7 @@ class R503:
     header = pack('>H', 0xEF01)
     pid_cmd = 0x01  # pid_command packet
 
-    def __init__(self, baud=57600, pw=0, addr=0xFFFFFFFF, recv_size=128, timeout=100, uart_no=1):
+    def __init__(self, baud=57600, pw=0, addr=0xFFFFFFFF, recv_size=128, timeout=100, uart_no=1, wakeup_pin=7):
         """
         Initialize the R503 class instance.
         Parameters:
@@ -26,6 +26,7 @@ class R503:
         self.pw = pack('>I', pw)
         self.addr = pack('>I', addr)
         self.recv_size = recv_size
+        self.wu_pin = Pin(wakeup_pin, Pin.IN)
         self.ser = UART(uart_no, baud)
         self.ser.init(baud, tx=Pin(9), rx=Pin(10), timeout=timeout)
 
@@ -446,7 +447,7 @@ class R503:
         read_conf_code = self.ser_send(pkg_len=0x06, instr_code=0x06, pkg=package)
         return read_conf_code[4]
 
-    def manual_enroll(self, location, buffer_id=1, num_of_fps=4, wake_up_pin=7):
+    def manual_enroll(self, location, buffer_id=1, num_of_fps=4):
         """
         Manually enroll a fingerprint to the fingerprint sensor.
 
@@ -474,25 +475,24 @@ class R503:
         """
         finger_prints = 0
         char_buff_no = 1
-        wu_pin = Pin(wake_up_pin, Pin.IN)
+
         msg_printed = False
         wu_set = True
         while True:
             if not msg_printed:
                 print(f'Place your finger on the sensor: {finger_prints+1}')
                 msg_printed = True
-            if wu_pin.value():
+            if self.wu_pin.value():
                 wu_set = True
-            if wu_set and not wu_pin.value():
+            if wu_set and not self.wu_pin.value():
                 time.sleep(0.1)
                 wu_set = False
                 msg_printed = False
                 img_value = self.get_image_ex()
-                print('im value => ', img_value)
                 if not img_value:
                     print('Reading the fingerprint')
                     if not self.img2tz(buffer_id=char_buff_no):
-                        print('Character file generation successful')
+                        print('Character file generation successful\n')
                         finger_prints += 1
                     else:
                         print('Character file generation failed !')
@@ -544,6 +544,11 @@ class R503:
         parameters: buff_num = character buffer id, start_id = starting from, para = end position
         returns: (tuple) status [success:0, error:1, no match:9], template number, match score
         """
+        print('Place your finger on the sensor')
+        while self.wu_pin.value():
+            pass
+        print('Searching...')
+        time.sleep(.1)
         self.get_image_ex()
         self.img2tz(1)
         package = pack('>BHH', buff_num, start_id, para)
@@ -816,15 +821,7 @@ if __name__ == '__main__':
     # for k, v in fp.read_sys_para_decode().items():
     #     print(k, ' => ', v)
 
-    # wake_up_pin = Pin(7, Pin.IN)
-    #
-    # print('program running...')
-    #
-    # while True:
-    #     if not wake_up_pin.value():
-    #         time.sleep(.03)
-    #         print('Finger on the sensor...')
-    #         print(fp.search())
+
 
 
 
