@@ -1,7 +1,8 @@
 import utime as time
 from machine import UART, Pin
-import json
 from struct import pack, unpack
+from confirmation_codes import conf_codes
+
 
 class R503:
     """
@@ -10,7 +11,7 @@ class R503:
     header = pack('>H', 0xEF01)
     pid_cmd = 0x01  # pid_command packet
 
-    def __init__(self, baud=57600, pw=0, addr=0xFFFFFFFF, recv_size=128, timeout=100, uart_no=1, wakeup_pin=7):
+    def __init__(self, baud=57600, tx_pin=21, rx_pin=17, pw=0, addr=0xFFFFFFFF, recv_size=128, timeout=100, uart_no=1, wakeup_pin=4, confirmation_codes=conf_codes):
         """
         Initialize the R503 class instance.
         Parameters:
@@ -28,22 +29,8 @@ class R503:
         self.recv_size = recv_size
         self.wu_pin = Pin(wakeup_pin, Pin.IN)
         self.ser = UART(uart_no, baud)
-        self.ser.init(baud, tx=Pin(9), rx=Pin(10), timeout=timeout)
-
-    @staticmethod
-    def conf_codes():
-        """
-        Read confirmation codes from the json file.
-        This function opens the 'confirmation_codes.json' file,
-        loads the JSON data from it, and returns the loaded JSON object.
-        Parameters:
-            self: The R503 class instance.
-        Returns:
-            jsob: The loaded JSON object containing the confirmation codes.
-        """
-        with open('confirmation_codes.json', 'r') as jf:
-            jsob = json.load(jf)
-        return jsob
+        self.confirmation_codes = confirmation_codes
+        self.ser.init(baud, tx=Pin(tx_pin), rx=Pin(rx_pin), timeout=timeout)
 
     def set_pw(self, new_pw):
         """
@@ -255,7 +242,7 @@ class R503:
         parameter: (int) c_code - confirmation code
         returns: (str) decoded confirmation code
         """
-        cc = self.conf_codes()
+        cc = self.confirmation_codes
         c_code = str(c_code)
         return cc[c_code] if c_code in cc else 'others: system reserved'
 
@@ -460,7 +447,6 @@ class R503:
             location (int): The page ID where the fingerprint data will be stored.
             buffer_id (int, optional): The buffer ID to use for temporary storage. Defaults to 1.
             num_of_fps (int, optional): The number of fingerprint images to capture. Defaults to 4.
-            wake_up_pin (int, optional): The GPIO pin number for the wake-up signal. Defaults to 7.
 
         Returns:
             None
@@ -816,10 +802,11 @@ class R503:
 
 
 if __name__ == '__main__':
+    print("Running.")
     fp = R503()
-    fp.manual_enroll(3)
-    # for k, v in fp.read_sys_para_decode().items():
-    #     print(k, ' => ', v)
+    # fp.manual_enroll(3)
+    for k, v in fp.read_sys_para_decode().items():
+        print(k, ' => ', v)
 
 
 
