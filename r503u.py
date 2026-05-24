@@ -468,7 +468,7 @@ class R503:
             if not msg_printed:
                 print(f'Place your finger on the sensor: {finger_prints+1}')
                 msg_printed = True
-            if self.wu_pin.value():
+            if not self.wu_pin.value():
                 wu_set = True
             if wu_set and not self.wu_pin.value():
                 time.sleep(0.1)
