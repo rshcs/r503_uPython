@@ -434,67 +434,40 @@ class R503:
         read_conf_code = self.ser_send(pkg_len=0x06, instr_code=0x06, pkg=package)
         return read_conf_code[4]
 
-    def manual_enroll(self, location, buffer_id=1, num_of_fps=4):
-        """
-        Manually enroll a fingerprint to the fingerprint sensor.
-
-        This method guides the user through the process of enrolling a new fingerprint
-        to the fingerprint sensor. It captures multiple images of the fingerprint,
-        generates a character file, registers the model, and stores the fingerprint
-        data in the specified location.
-
-        Args:
-            location (int): The page ID where the fingerprint data will be stored.
-            buffer_id (int, optional): The buffer ID to use for temporary storage. Defaults to 1.
-            num_of_fps (int, optional): The number of fingerprint images to capture. Defaults to 4.
-
-        Returns:
-            None
-
-        Raises:
-            None
-
-        Note:
-            This method assumes that the fingerprint sensor is connected and properly
-            configured. It also requires a wake-up signal from the fingerprint sensor
-            to initiate the fingerprint capture process.
-        """
-        finger_prints = 0
-        char_buff_no = 1
-
-        msg_printed = False
-        wu_set = True
-        while True:
-            if not msg_printed:
-                print(f'Place your finger on the sensor: {finger_prints+1}')
-                msg_printed = True
-            if not self.wu_pin.value():
-                wu_set = True
-            if wu_set and not self.wu_pin.value():
-                time.sleep(0.1)
-                wu_set = False
-                msg_printed = False
-                img_value = self.get_image_ex()
-                if not img_value:
-                    print('Reading the fingerprint')
-                    if not self.img2tz(buffer_id=char_buff_no):
-                        print('Character file generation successful\n')
-                        finger_prints += 1
-                    else:
-                        print('Character file generation failed !')
-                    if finger_prints >= num_of_fps:
-                        print('Registering the fingerprint...')
-                        if not self.reg_model():
-                            print('Registering the model')
-                            if not self.store(buffer_id=buffer_id, page_id=location):
-                                print('Fingerprint registered successfully')
-                            else:
-                                print('Fingerprint register failed !')
-                            break
-                        else:
-                            print('Error registering the model')
-                else:
-                    print('error reading...')
+    def manual_enroll(self, location, num_of_fps, timeout=20, wu_debounce=.5):
+        buff_id = 1
+        t0 = time.time()
+        fp_read = True  # False if fingerprint read, else True
+        for fps in range(num_of_fps):
+            print(f'Place your finger on the sensor: {buff_id}')
+            while fp_read:
+                fp_read = self.get_image_ex()  # fp_read = False for successful fingerprint read
+                if time.time() - t0 > timeout:
+                    print(f'Timeout! {timeout} seconds')
+                    return 99
+            t0 = time.time() # Reset the timeout
+            char_gen = self.img2tz(buff_id)  # False if character file successfully generated
+            print(f'Remove your finger on the sensor: {buff_id}')
+            while not fp_read:
+                fp_read = self.get_image_ex()  # fp_read = False for successful fingerprint read
+                if time.time() - t0 > timeout:
+                    print(f'Timeout! {timeout} seconds')
+                    return 99
+            if not char_gen:
+                print(f'Character file generation successful: {buff_id}')
+                buff_id += 1
+            else:
+                print(f'Character file generation failed code: {char_gen}')
+        print('Registering a fingerprint')
+        if not self.reg_model():
+            print('Fingerprint registered successfully')
+            if not self.store(buffer_id=1, page_id=location):
+                print('Fingerprint Saved successfully')
+                return 0
+            print('Fingerprint Saving failed !')
+            return 99
+        print('Fingerprint registration failed !')
+        return 99
 
     def delete_char(self, page_num, num_of_temps_to_del=1):
         """
