@@ -393,8 +393,8 @@ class R503:
 
     def img2tz(self, buffer_id):
         """
-        Generate character file from the original image in Image Buffer and store the file in CharBuffer 1 or 2
-        parameter: (int) buffer_id, 1 or 2
+        Generate character file from the original image in Image Buffer and store the file in CharBuffer 1 to 6
+        parameter: (int) buffer_id, 1 to 6
         returns: (int) confirmation code
         """
         read_conf_code = self._ser_send(pkg_len=0x04, instr_code=0x02, pkg=pack('>B', buffer_id))
@@ -402,8 +402,8 @@ class R503:
 
     def reg_model(self):
         """
-        Combine info of character files in CharBuffer 1 and 2 and generate a template which is stored back in both
-        CharBuffer 1 and 2
+        Combine info of character files in CharBuffer 1 to 6 and generate a template which is stored in
+        CharBuffers 1 and 2
         input parameters: None
         returns: (int) confirmation code
         """
@@ -413,27 +413,34 @@ class R503:
     def store(self, buffer_id, page_id):
         """
         Store a fingerprint template to the module's flash library.
-
-        This function stores the template from the specified buffer
-        (buffer1 or buffer2) to the page number in the flash library.
-
         Parameters:
             buffer_id (int): 1 for buffer1, 2 for buffer2
             page_id (int): Page number to store the template
-
         Returns:
             conf_code (int): The confirmation code received after storing.
                 0 means success.
-
-        It packs the buffer and page IDs into a package, sends the store
-        command with the package, and returns the confirmation code response.
         """
         package = pack('>BH', buffer_id, page_id)
         read_conf_code = self._ser_send(pkg_len=0x06, instr_code=0x06, pkg=package)
         return read_conf_code[4]
 
-    def manual_enroll(self, location, num_of_fps, timeout=20, wu_debounce=.5):
+    def manual_enroll(self, location, num_of_fps, timeout=20):
+        """
+        Manually enroll a fingerprint to the device memory.
+        Process: Read the fingerprint image -> Generate character file from Image Buffer and store it in
+        CharBuffers 1 to 6 -> Register a fingerprint -> Store fingerprint in the device memory
+        * if the user set num_of_fps parameter higher than 6 then it'll be automatically set to 6.
+        Parameters:
+            location (int): The memory location of the device to enroll (1 to 200).
+            num_of_fps (int): The number of fingerprints to enroll (1 to 6). Recommended to add at least 4 fingerprints
+            for the clarity of the generated template.
+            timeout (int): The timeout in seconds for each step of the enrollment process. Default is 20 seconds.
+        Returns:
+            0 if enrollment was successful.
+            1 Failed.
+        """
         buff_id = 1
+        num_of_fps = 6 if num_of_fps > 6 else num_of_fps  # Maximum number of buffers = 6
         t0 = time.time()
         fp_read = True  # False if fingerprint read, else True
         for fps in range(num_of_fps):
