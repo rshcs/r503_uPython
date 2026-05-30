@@ -31,6 +31,9 @@ class R503:
         self.confirmation_codes = confirmation_codes
         self.ser.init(baud, tx=Pin(tx_pin), rx=Pin(rx_pin), timeout=timeout)
 
+    def wakeup_pin_status(self):
+        return self.wu_pin.value()
+
     def set_pw(self, new_pw):
         """
         Set modules handshaking password
@@ -52,7 +55,7 @@ class R503:
         recv_data = self._ser_send(pid=0x01, pkg_len=0x07, instr_code=0x15, pkg=self.addr)
         return recv_data[4]
 
-    def read_msg(self, data_stream):
+    def _read_msg(self, data_stream):
         """
         Unpack byte stream to readable data
         returns: (tuple) header, address, package id, package len, confirmation code, package, checksum
@@ -444,7 +447,7 @@ class R503:
         t0 = time.time()
         fp_read = True  # False if fingerprint read, else True
         for fps in range(num_of_fps):
-            print(f'Place your finger on the sensor: {buff_id}')
+            print(f'Place your finger on the sensor: {buff_id} | Timeout: {timeout} seconds')
             while fp_read:  # Wait until the user places finger on the sensor
                 fp_read = self.get_image_ex()  # fp_read = False for successful fingerprint read
                 if time.time() - t0 > timeout:
@@ -452,7 +455,7 @@ class R503:
                     return 99
             t0 = time.time() # Reset the timeout
             char_gen = self.img2tz(buff_id)  # False if character file successfully generated
-            print(f'Remove your finger on the sensor: {buff_id}')
+            print(f'Lift your finger from the sensor: {buff_id}')
             while not fp_read:  # Wait until the user removes finger from the sensor
                 fp_read = self.get_image_ex()  # fp_read = False for successful fingerprint read
                 if time.time() - t0 > timeout:
@@ -464,15 +467,39 @@ class R503:
             else:
                 print(f'Character file generation failed code: {char_gen}')
         print('Registering a fingerprint...')
-        if not self.reg_model():
+        reg_value =self.reg_model()
+        if not reg_value:
             print('Fingerprint registered successfully')
-            if not self.store(buffer_id=1, page_id=location):
+            store_value = self.store(buffer_id=1, page_id=location)
+            if not store_value:
                 print('Fingerprint Saved successfully')
                 return 0
             print('Fingerprint Saving failed !')
-            return 99
+            return store_value
         print('Fingerprint registration failed !')
-        return 99
+        return reg_value
+
+    def simplified_enroll(self, num_of_fps=4, buff_no=1, timeout=20):
+        """
+        Simplified enrollment of fingerprints.
+        Parameters:
+            num_of_fps (int): The number of times the  finger has to be placed on the sensor.
+            buff_no (int): The buffer number where fingerprint stored
+            timeout (int): The timeout in seconds for each step of the enrollment process.
+        Returns:
+            0 if enrollment was successful. Other error status codes if not successful.
+        """
+        fp_status, temp_num, _ = self.search(buff_num=buff_no, timeout=timeout)
+        if not fp_status:
+            print(f'Fingerprint found in the memory, location: {temp_num}')
+            return 0
+        elif fp_status == 9:
+            print('Fingerprint not found in the memory\nFinding next available memory location to store')
+            loc = self.get_available_location()
+            print(f'Manually enrolling the fingerprint in location: {loc}')
+            return self.manual_enroll(location=loc, num_of_fps=num_of_fps, timeout=timeout)
+        print('Error occurred while enrolling fingerprint')
+        return fp_status
 
     def delete_char(self, page_num, num_of_temps_to_del=1):
         """
@@ -502,18 +529,21 @@ class R503:
         rec_data = self._ser_send(pid=0x01, pkg_len=0x03, instr_code=0x03, rx_bytes_expected=14)
         return rec_data[4], rec_data[5]
 
-    def search(self, buff_num=1, start_id=0, para=200):
+    def search(self, buff_num=1, start_id=0, para=200, timeout=10):
         """
         Search the whole finger library for the template that matches the one in CharBuffer 1 or 2
         parameters: buff_num = character buffer id, start_id = starting from, para = end position
         returns: (tuple) status [success:0, error:1, no match:9], template number, match score
         """
-        print('Place your finger on the sensor')
-        while self.wu_pin.value():
-            pass
+        print(f'Place your finger on the sensor. Timeout: {timeout} seconds')
+        fp_read = True
+        t0 = time.time()
+        while fp_read:  # Wait until the user places finger on the sensor
+            fp_read = self.get_image_ex()  # fp_read = False for successful fingerprint read
+            if time.time() - t0 > timeout:
+                print(f'Timeout! {timeout} seconds')
+                return 99
         print('Searching...')
-        time.sleep(.1)
-        self.get_image_ex()
         self.img2tz(1)
         package = pack('>BHH', buff_num, start_id, para)
         recv_data = self._ser_send(pid=0x01, pkg_len=0x08, instr_code=0x04, pkg=package, rx_bytes_expected=16)
@@ -775,7 +805,7 @@ class R503:
             if time.ticks_diff(time.ticks_ms(), t0) > timeout:
                 break
         read_val = self.ser.read()
-        return [0, 0, 0, 0, 99, None, 0] if read_val is None else self.read_msg(read_val)
+        return [0, 0, 0, 0, 99, None, 0] if read_val is None else self._read_msg(read_val)
 
 
 if __name__ == '__main__':
