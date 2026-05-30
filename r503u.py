@@ -16,10 +16,15 @@ class R503:
         Initialize the R503 class instance.
         Parameters:
           baud (int): The baud rate, default 57600
+          tx_pin (int): The transmit pin for transmitting data
+          rx_pin (int): The receive pin for receiving data
           pw (int): The password, default 0
           addr (int): The module address, default 0xFFFFFFFF
-          timeout (int): The serial timeout in milliseconds, default 1
           recv_size (int): The receive buffer size, default 128
+          timeout (int): The serial timeout in milliseconds, default 1
+          uart_no (int): The UART number, default 1
+          wakeup_pin (int): The wakeup pin number, default 4
+          confirmation_codes (int): The confirmation codes, default conf_codes dictionary
         This initializes the R503 instance attributes like pw, addr etc.
         It opens the serial port with the given parameters.
         """
@@ -32,6 +37,12 @@ class R503:
         self.ser.init(baud, tx=Pin(tx_pin), rx=Pin(rx_pin), timeout=timeout)
 
     def wakeup_pin_status(self):
+        """
+        Wake up the pin status. Return value is 0 if finger is on the sensor or hovering above the sensor, Returns 1
+        if no finger is on the sensor.
+        Parameters: None
+        Returns: Current status of the wakeup pin. 0 or 1
+        """
         return self.wu_pin.value()
 
     def set_pw(self, new_pw):
@@ -217,6 +228,7 @@ class R503:
     def verify_pw(self, pw=0x00):
         """
         Verify modules handshaking password
+        parameters: module password
         returns: (int) confirmation code
         """
         recv_data = self._ser_send(pkg_len=0x07, instr_code=0x13, pkg=pack('>I', pw))
@@ -233,6 +245,7 @@ class R503:
     def check_sensor(self):
         """
         Check whether the sensor is normal
+        parameters: None
         returns: (int) confirmation code
         """
         recv_data = self._ser_send(pkg_len=0x03, instr_code=0x36)
@@ -255,6 +268,7 @@ class R503:
         Load template ath the specified location of flash library to template buffer
         parameters: page_id => (int) page number
                     buffer id => (int) character buffer id
+        returns: (int) confirmation code
         """
         pkg = pack('>BH', buffer_id, page_id)
         recv_data = self._ser_send(pid=0x01, pkg_len=0x06, instr_code=0x07, pkg=pkg)
