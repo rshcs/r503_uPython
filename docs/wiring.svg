@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="400" viewBox="0 0 860 400">
+  <style>
+    .title { font: bold 18px sans-serif; }
+    .label { font: 12px sans-serif; fill: #111; }
+    .box { fill:#f6f9ff; stroke:#333; stroke-width:1.5 }
+    .pin { fill:#ffffff; stroke:#777; }
+  </style>
+
+  <rect x="0" y="0" width="860" height="400" fill="#e8edf3" />
+  <text x="14" y="24" class="title">R503 Fingerprint Sensor - ESP32 Wiring</text>
+
+  <!-- Sensor box -->
+  <rect x="20" y="50" width="320" height="290" rx="8" class="box" />
+  <text x="32" y="74" class="label">R503 Sensor</text>
+
+  <!-- Sensor pins (ordered) -->
+  <rect x="36" y="94" width="244" height="24" class="pin" />
+  <text x="42" y="110" class="label">[1] VCC 3.3V</text>
+
+  <rect x="36" y="124" width="244" height="24" class="pin" />
+  <text x="42" y="140" class="label">[2] GND</text>
+
+  <rect x="36" y="154" width="244" height="24" class="pin" />
+  <text x="42" y="170" class="label">[3] TX</text>
+
+  <rect x="36" y="184" width="244" height="24" class="pin" />
+  <text x="42" y="200" class="label">[4] RX</text>
+
+  <rect x="36" y="214" width="244" height="24" class="pin" />
+  <text x="42" y="230" class="label">[5] Wakeup pin</text>
+
+  <rect x="36" y="244" width="244" height="24" class="pin" />
+  <text x="42" y="260" class="label">[6] Touch induction power</text>
+
+  <!-- ESP32 box -->
+  <rect x="500" y="50" width="340" height="290" rx="8" class="box" />
+  <text x="512" y="74" class="label">Micropython Device (Etc. ESP32)</text>
+
+  <!-- ESP32 side labels aligned with wire centers -->
+  <text x="512" y="110" class="label">3V3 (3.3V)</text>
+  <text x="512" y="140" class="label">GND</text>
+  <text x="512" y="170" class="label">RX (UART1) - GPIO17</text>
+  <text x="512" y="200" class="label">TX (UART1) - GPIO21</text>
+  <text x="512" y="230" class="label">GPIO4 (wakeup / input)</text>
+  <text x="512" y="260" class="label">3V3 (touch induction power)</text>
+
+  <!-- Wires in required order and colors -->
+  <!-- 1: power supply (red) -->
+  <line x1="280" y1="106" x2="500" y2="106" stroke="#ff0000" stroke-width="4" />
+
+  <!-- 2: GND (black) -->
+  <line x1="280" y1="136" x2="500" y2="136" stroke="#000000" stroke-width="4" />
+
+  <!-- 3: TX (yellow) -->
+  <line x1="280" y1="166" x2="500" y2="166" stroke="#ffd400" stroke-width="4" />
+
+  <!-- 4: RX (maroon) -->
+  <line x1="280" y1="196" x2="500" y2="196" stroke="#800000" stroke-width="4" />
+
+  <!-- 5: Wakeup pin (blue) -->
+  <line x1="280" y1="226" x2="500" y2="226" stroke="#0066ff" stroke-width="4" />
+
+  <!-- 6: Touch induction power (white, connected to 3.3V rail) -->
+  <line x1="280" y1="256" x2="500" y2="256" stroke="#666666" stroke-width="6" />
+  <line x1="280" y1="256" x2="500" y2="256" stroke="#ffffff" stroke-width="4" />
+
+  <text x="14" y="375" class="label">Notes: Use 3.3V logic levels. Touch induction power is tied to 3.3V.</text>
+</svg>
