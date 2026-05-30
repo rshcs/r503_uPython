@@ -458,7 +458,7 @@ class R503:
                 buff_id += 1
             else:
                 print(f'Character file generation failed code: {char_gen}')
-        print('Registering a fingerprint')
+        print('Registering a fingerprint...')
         if not self.reg_model():
             print('Fingerprint registered successfully')
             if not self.store(buffer_id=1, page_id=location):
