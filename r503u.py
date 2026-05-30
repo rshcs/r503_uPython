@@ -496,6 +496,10 @@ class R503:
     def simplified_enroll(self, num_of_fps=4, buff_no=1, timeout=20):
         """
         Simplified enrollment of fingerprints.
+        1. Checks if fingerprint already exists in the device memory.
+        2. If exists returns 0
+        3. If not exists then it finds the next available location in the device memory.
+        4. Enrolls the fingerprint at the memory location where identified by the previous step.
         Parameters:
             num_of_fps (int): The number of times the  finger has to be placed on the sensor.
             buff_no (int): The buffer number where fingerprint stored
