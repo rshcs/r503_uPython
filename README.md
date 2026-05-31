@@ -2,8 +2,14 @@
 
 [![MicroPython - ESP32](https://img.shields.io/badge/MicroPython-ESP32-brightgreen)](https://micropython.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![Last Commit](https://img.shields.io/github/last-commit/rshcs/r503_uPython)](https://github.com/rshcs/r503_uPython/commits/main)
+
+Pure Python implementation: https://github.com/rshcs/Grow-R503-Finger-Print
 
 MicroPython library for the R503 fingerprint sensor module running on ESP32.
+
+![R503](docs/r503.jpg)
+Image ref: aliexpress[dot]com
 
 ## Overview
 
@@ -21,6 +27,26 @@ MicroPython library for the R503 fingerprint sensor module running on ESP32.
 - Utility functions for baud/security/package-size configuration.
 - Wakeup pin support (configured as input). Interrupt-driven behavior is left to the user.
 
+## Operation Principle
+
+### Fingerprint Enrollment
+
+1. Read fingerprint image from sensor and place it in the image buffer using `get_image_ex()`.
+2. Generate a character file from that image and store it in one character buffer using `img2tz()`.
+3. Repeat steps 1 and 2 for the user-defined sample count (1 to 6).
+4. Generate a final fingerprint template using `reg_model()`.
+5. Store the generated template in permanent module memory using `store()`.
+
+### Check Whether a Fingerprint Exists in Device Memory
+
+1. Read fingerprint image into image buffer using `get_image_ex()`.
+2. Generate character file and store in character buffer using `img2tz()`.
+3. Search fingerprint library for a matching template using `search()`.
+4. Return values:
+   - `0` when a match is found.
+   - `9` when no match is found.
+   - Matching template number and match score are also returned.
+
 ## Interfacing
 
 ### Wiring Diagram
@@ -29,16 +55,17 @@ MicroPython library for the R503 fingerprint sensor module running on ESP32.
 
 ### Wiring Connections
 
-| No. | Sensor Side | MicroPython Device Side | Signal | Sensor side wire color   | Notes                           |
-| --- | --- | --- | --- |--------------------------|---------------------------------|
-| 1 | VCC | 3V3 | Power supply | Red                      | Main sensor supply              |
-| 2 | GND | GND | Ground | Black                    | Common ground required          |
-| 3 | TX | RX (GPIO17, UART1) | UART TX -> RX            | Maroon or Green or Brown | Sensor TX connects to device RX |
-| 4 | RX | TX (GPIO21, UART1) | UART RX <- TX            | Yellow                   | Sensor RX connects to device TX |
-| 5 | Wakeup pin | GPIO4 | Wakeup signal | Blue                     | Can be used as interrupt source |
-| 6 | Touch induction power | 3V3 | Auxiliary power | White                    | Tie to 3.3V                     |
+| No. | Sensor Side | MicroPython Device Side | Signal | Sensor side wire color    | Notes                           |
+| --- | --- | --- | --- |---------------------------|---------------------------------|
+| 1 | VCC | 3V3 | Power supply | Red                       | Main sensor supply              |
+| 2 | GND | GND | Ground | Black                     | Common ground required          |
+| 3 | TX | RX (GPIO17, UART1) | UART TX -> RX            | Yellow                    | Sensor TX connects to device RX |
+| 4 | RX | TX (GPIO21, UART1) | UART RX <- TX            | Maroon  or Green or Brown | Sensor RX connects to device TX |
+| 5 | Wakeup pin | GPIO4 | Wakeup signal | Blue                      | Can be used as interrupt source |
+| 6 | Touch induction power | 3V3 | Auxiliary power | White                     | Tie to 3.3V                     |
 
-* Note: Some pins on the ESP32 not usable even though they are labeled as GPIO pins. Etc. GPIO 6 to 11 are not usable for general purpose I/O because they are connected to integrated SPI flash. See [ESP32 pinout](https://randomnerdtutorials.com/esp32-pinout-reference-gpios/) for details.
+> [!WARNING]
+> **Note:** Some pins on the ESP32 are not usable even though they are labeled as GPIO pins. For example, GPIO 6 to 11 are not usable for general-purpose I/O because they are connected to integrated SPI flash. See [ESP32 pinout](https://randomnerdtutorials.com/esp32-pinout-reference-gpios/) for details.
 
 ## Voltages and Logic
 
@@ -244,6 +271,21 @@ Returns `99` on communication/read failure.
 **Purpose:**
 Control the onboard LED mode (always on/off, breathing, flashing, etc.).
 
+**Method details:**
+
+- Signature: `fp.led_control(ctrl=0x03, speed=0, color=0x01, cycles=0)`
+- `ctrl` modes:
+  - `1`: breathing light
+  - `2`: flashing light
+  - `3`: always on
+  - `4`: always off
+  - `5`: gradually on
+  - `6`: gradually off
+- `speed`: `0` to `255` (effect speed)
+- `color`: `0` to `7` (module LED color code)
+- `cycles`: `0` to `255` (effect repetition count, mode-dependent)
+- Return value: confirmation code (`0` means command execution complete)
+
 ```py
 from r503u import R503
 
@@ -254,6 +296,23 @@ print(rc, fp.confirmation_decode(rc))
 
 **Expected output (example):**
 - `0 00h: command execution complete` (`ctrl=3` in this example means always on)
+
+### 10) `fp.soft_reset()`
+
+**Purpose:**
+Perform a software reset of the R503 module.
+
+```py
+from r503u import R503
+
+fp = R503()
+rc = fp.soft_reset()
+print(rc, fp.confirmation_decode(rc))
+```
+
+**Expected output (example):**
+- `0 00h: command execution complete`
+- After reset, you may need to wait briefly before sending the next command.
 
 ## Wakeup Pin / Interrupts
 
