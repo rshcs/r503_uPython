@@ -1,0 +1,47 @@
+site_name: r503_uPython Documentation
+site_description: Comprehensive API documentation for the R503 MicroPython driver
+repo_url: https://github.com/rshcs/r503_uPython
+repo_name: rshcs/r503_uPython
+
+nav:
+  - Home: index.md
+  - Function Reference:
+      - Index: functions/index.md
+  - GitHub Pages Hosting: github-pages.md
+
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: indigo
+      accent: cyan
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+    - scheme: default
+      primary: indigo
+      accent: cyan
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+  features:
+    - navigation.top
+    - navigation.instant
+    - content.code.copy
+    - search.suggest
+    - search.highlight
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.details
+  - pymdownx.superfences
+
+plugins:
+  - search
+
+validation:
+  nav:
+    omitted_files: ignore
