@@ -6,9 +6,12 @@
 
 Pure Python implementation: https://github.com/rshcs/Grow-R503-Finger-Print
 
+---
+
 MicroPython library for the R503 fingerprint sensor module running on ESP32.
 
 ![R503](docs/r503.jpg)
+
 Image ref: aliexpress[dot]com
 
 ## Overview
@@ -107,6 +110,8 @@ from r503u import R503
 fp = R503()  # defaults: baud=57600, tx_pin=21, rx_pin=17, wakeup_pin=4
 ```
 
+---
+
 ### 1) `fp.simplified_enroll()`
 
 **Purpose:**
@@ -124,6 +129,8 @@ print(res)
 - Existing fingerprint: prints `Fingerprint found in the memory, location: 5`, returns `0`.
 - New enrollment: prints prompts (`Place your finger...`, `Character file generation successful...`) and returns `0` on success.
 
+---
+
 ### 2) `fp.read_index_table()`
 
 **Purpose:**
@@ -133,13 +140,15 @@ Read the template index bitmap and return all occupied memory indices on a given
 from r503u import R503
 
 fp = R503()
-idx = fp.read_index_table(0)
+idx = fp.read_index_table()
 print(idx)
 ```
 
 **Expected output (example):**
 - `[0, 3, 5, 12]` (stored template positions)
 - Returns `99` on communication timeout/error.
+
+---
 
 ### 3) `fp.search()`
 
@@ -159,6 +168,8 @@ print(res)
 - Return: `(0, 12, 78)` = `(confirmation_code, template_index, match_score)`
 - No match example: `(9, 0, 0)` where `9` means no matching finger found.
 
+---
+
 ### 4) `fp.read_valid_template_num()`
 
 **Purpose:**
@@ -173,6 +184,8 @@ print(fp.read_valid_template_num())
 
 **Expected output (example):**
 - `5`
+
+---
 
 ### 5) `fp.delete_char()`
 
@@ -190,6 +203,8 @@ print(rc, fp.confirmation_decode(rc))
 **Expected output (example):**
 - `0 00h: command execution complete`
 
+---
+
 ### 6) `fp.empty_finger_lib()`
 
 **Purpose:**
@@ -205,6 +220,8 @@ print(rc, fp.confirmation_decode(rc))
 
 **Expected output (example):**
 - `0 00h: command execution complete`
+
+---
 
 ### 7) `fp.read_sys_para_decode()`
 
@@ -234,6 +251,8 @@ print(fp.read_sys_para_decode())
   'baud_rate': 57600
 }
 ```
+
+---
 
 ### 8) `fp.read_prod_info_decode()`
 
@@ -266,10 +285,20 @@ print(fp.read_prod_info_decode())
 
 Returns `99` on communication/read failure.
 
+---
+
 ### 9) `fp.led_control()`
 
 **Purpose:**
 Control the onboard LED mode (always on/off, breathing, flashing, etc.).
+
+```py
+from r503u import R503
+
+fp = R503()
+rc = fp.led_control(ctrl=3, speed=0, color=1, cycles=0)
+print(rc, fp.confirmation_decode(rc))
+```
 
 **Method details:**
 
@@ -286,16 +315,7 @@ Control the onboard LED mode (always on/off, breathing, flashing, etc.).
 - `cycles`: `0` to `255` (effect repetition count, mode-dependent)
 - Return value: confirmation code (`0` means command execution complete)
 
-```py
-from r503u import R503
-
-fp = R503()
-rc = fp.led_control(ctrl=3, speed=0, color=1, cycles=0)
-print(rc, fp.confirmation_decode(rc))
-```
-
-**Expected output (example):**
-- `0 00h: command execution complete` (`ctrl=3` in this example means always on)
+---
 
 ### 10) `fp.soft_reset()`
 
@@ -313,6 +333,8 @@ print(rc, fp.confirmation_decode(rc))
 **Expected output (example):**
 - `0 00h: command execution complete`
 - After reset, you may need to wait briefly before sending the next command.
+
+---
 
 ## Wakeup Pin / Interrupts
 
