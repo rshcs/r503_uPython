@@ -1,4 +1,4 @@
-# r503_uPython
+# R503 Fingerprint Reader MicroPython Driver
 
 [![MicroPython - ESP32](https://img.shields.io/badge/MicroPython-ESP32-brightgreen)](https://micropython.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
@@ -29,36 +29,22 @@ MicroPython library for the R503 fingerprint sensor module running on ESP32.
 
 ### Wiring Connections
 
-| No. | Sensor Side | MicroPython Device Side | Signal | Notes |
-| --- | --- | --- | --- | --- |
-| 1 | VCC | 3V3 | Power supply | Main sensor supply |
-| 2 | GND | GND | Ground | Common ground required |
-| 3 | TX | RX (GPIO17, UART1) | UART TX -> RX | Sensor TX connects to device RX |
-| 4 | RX | TX (GPIO21, UART1) | UART RX <- TX | Sensor RX connects to device TX |
-| 5 | Wakeup pin | GPIO4 | Wakeup signal | Can be used as interrupt source |
-| 6 | Touch induction power | 3V3 | Auxiliary power | Tie to 3.3V |
+| No. | Sensor Side | MicroPython Device Side | Signal | Sensor side wire color   | Notes                           |
+| --- | --- | --- | --- |--------------------------|---------------------------------|
+| 1 | VCC | 3V3 | Power supply | Red                      | Main sensor supply              |
+| 2 | GND | GND | Ground | Black                    | Common ground required          |
+| 3 | TX | RX (GPIO17, UART1) | UART TX -> RX            | Maroon or Green or Brown | Sensor TX connects to device RX |
+| 4 | RX | TX (GPIO21, UART1) | UART RX <- TX            | Yellow                   | Sensor RX connects to device TX |
+| 5 | Wakeup pin | GPIO4 | Wakeup signal | Blue                     | Can be used as interrupt source |
+| 6 | Touch induction power | 3V3 | Auxiliary power | White                    | Tie to 3.3V                     |
+
+* Note: Some pins on the ESP32 not usable even though they are labeled as GPIO pins. Etc. GPIO 6 to 11 are not usable for general purpose I/O because they are connected to integrated SPI flash. See [ESP32 pinout](https://randomnerdtutorials.com/esp32-pinout-reference-gpios/) for details.
 
 ## Voltages and Logic
 
 - Power the sensor with 3.3V.
 - Do NOT use 5V for logic lines.
 - ESP32 logic is 3.3V and can be connected directly.
-
-## Wakeup Pin / Interrupts
-
-- The class configures a wakeup pin (default GPIO4) and exposes `wakeup_pin_status()`.
-- The repository does not include an interrupt-driven API. If needed, attach interrupts in your application.
-
-```py
-from machine import Pin
-
-wu = Pin(4, Pin.IN)
-
-def on_wakeup(pin):
-    print('Wakeup event', pin.value())
-
-wu.irq(handler=on_wakeup, trigger=Pin.IRQ_FALLING)
-```
 
 ## Installation
 
@@ -71,10 +57,10 @@ Files to upload to your MicroPython device:
 ### Using mpremote (CLI)
 
 ```bash
-mpremote connect COM3 cp r503u.py :
-mpremote connect COM3 cp confirmation_codes.py :
-mpremote connect COM3 cp main.py :
-mpremote connect COM3 run main.py
+mpremote cp r503u.py :r503u.py
+mpremote cp confirmation_codes.py :confirmation_codes.py
+mpremote cp main.py :main.py
+mpremote run main.py
 ```
 
 ### Alternative: Thonny IDE
@@ -100,7 +86,10 @@ fp = R503()  # defaults: baud=57600, tx_pin=21, rx_pin=17, wakeup_pin=4
 Enroll a fingerprint with a guided, blocking flow. It checks whether the fingerprint already exists and otherwise enrolls into the next free location.
 
 ```py
-res = fp.simplified_enroll(num_of_fps=4, buff_no=1, timeout=20)
+from r503u import R503
+
+fp = R503()
+res = fp.simplified_enroll()  # Defaults: num_of_fps=4, buff_no=1, timeout=20
 print(res)
 ```
 
@@ -114,6 +103,9 @@ print(res)
 Read the template index bitmap and return all occupied memory indices on a given index page.
 
 ```py
+from r503u import R503
+
+fp = R503()
 idx = fp.read_index_table(0)
 print(idx)
 ```
@@ -128,6 +120,9 @@ print(idx)
 Capture a fingerprint, generate a template in buffer, and search the configured library range.
 
 ```py
+from r503u import R503
+
+fp = R503()
 res = fp.search(buff_num=1, start_id=0, para=200, timeout=10)
 print(res)
 ```
@@ -143,6 +138,9 @@ print(res)
 Get total number of currently valid fingerprint templates in sensor memory.
 
 ```py
+from r503u import R503
+
+fp = R503()
 print(fp.read_valid_template_num())
 ```
 
@@ -155,6 +153,9 @@ print(fp.read_valid_template_num())
 Delete one or more templates starting at a given page index.
 
 ```py
+from r503u import R503
+
+fp = R503()
 rc = fp.delete_char(page_num=3, num_of_temps_to_del=1)
 print(rc, fp.confirmation_decode(rc))
 ```
@@ -168,6 +169,9 @@ print(rc, fp.confirmation_decode(rc))
 Erase all stored fingerprint templates from the module.
 
 ```py
+from r503u import R503
+
+fp = R503()
 rc = fp.empty_finger_lib()
 print(rc, fp.confirmation_decode(rc))
 ```
@@ -181,6 +185,9 @@ print(rc, fp.confirmation_decode(rc))
 Read and decode module system parameters into a human-readable dictionary.
 
 ```py
+from r503u import R503
+
+fp = R503()
 print(fp.read_sys_para_decode())
 ```
 
@@ -207,6 +214,9 @@ print(fp.read_sys_para_decode())
 Read and decode manufacturer/module product information.
 
 ```py
+from r503u import R503
+
+fp = R503()
 print(fp.read_prod_info_decode())
 ```
 
@@ -235,9 +245,28 @@ Returns `99` on communication/read failure.
 Control the onboard LED mode (always on/off, breathing, flashing, etc.).
 
 ```py
+from r503u import R503
+
+fp = R503()
 rc = fp.led_control(ctrl=3, speed=0, color=1, cycles=0)
 print(rc, fp.confirmation_decode(rc))
 ```
 
 **Expected output (example):**
 - `0 00h: command execution complete` (`ctrl=3` in this example means always on)
+
+## Wakeup Pin / Interrupts
+
+- The class configures a wakeup pin (default GPIO4) and exposes `wakeup_pin_status()`.
+- The repository does not include an interrupt-driven API. If needed, attach interrupts in your application.
+
+```py
+from machine import Pin
+
+wu = Pin(4, Pin.IN)
+
+def on_wakeup(pin):
+    print('Wakeup event', pin.value())
+
+wu.irq(handler=on_wakeup, trigger=Pin.IRQ_FALLING)
+```
