@@ -832,9 +832,3 @@ if __name__ == '__main__':
     # fp.manual_enroll(3)
     for k, v in fp.read_sys_para_decode().items():
         print(k, ' => ', v)
-
-
-
-
-
-
